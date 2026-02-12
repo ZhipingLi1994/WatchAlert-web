@@ -59,6 +59,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         { imgSrc: WeChatImg, text: '企业微信', value: 'WeChat' },
         { imgSrc: SlackImg, text: 'Slack', value: 'Slack' },
         { imgSrc: WebHook, text: 'WebHook', value: 'WebHook' },
+        { imgSrc: EmailImg, text: 'HTTP', value: 'HTTP' },
     ], [])
 
     // 全局状态保持不变，但生效时间将存储在各个路由中
@@ -676,6 +677,27 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                         </Form.Item>
                                                                     </>
                                                                 )
+                                                            } else if (currentNoticeType === 'HTTP') {
+                                                                // --- HTTP 独立逻辑 ---
+                                                                return (
+                                                                    <>
+                                                                        <Form.Item
+                                                                            {...restField}
+                                                                            name={[name, "hook"]}
+                                                                            label="HTTP/HTTPS 地址"
+                                                                            rules={[
+                                                                                {required: true, message: '请输入地址'},
+                                                                                {pattern: /^(http|https):\/\//, message: '地址必须以 http:// 或 https:// 开头'}
+                                                                            ]}
+                                                                        >
+                                                                            <Input placeholder="http(s)://example.com/api"/>
+                                                                        </Form.Item>
+                                                                        {/* 注意：通知模板选择逻辑在下方通用代码中 (第538行起)，
+                                                                            因为 HTTP != WebHook，它会自动显示并校验模板必填，
+                                                                            且自动加载 HTTP 类型的模板。 */}
+                                                                    </>
+                                                                )
+                                                                // ---------------------------------------
                                                             } else {
                                                                 return (
                                                                     <>
