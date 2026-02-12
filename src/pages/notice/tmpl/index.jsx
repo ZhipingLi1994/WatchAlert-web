@@ -94,6 +94,13 @@ export const NoticeTemplate = () => {
                             <div style={{ marginLeft: '5px', marginTop: '5px', fontSize: '12px' }}>Slack</div>
                         </div>
                     );
+                }else if (record.noticeType === 'HTTP') {// ADD HTTP
+                    return (
+                        <div style={{ display: 'flex' }}>
+                            <EmailIcon style={{ height: '25px', width: '25px' }} />
+                            <div style={{ marginLeft: '5px', marginTop: '5px', fontSize: '12px' }}>HTTP</div>
+                        </div>
+                    );
                 }
                 return '-';
             },
