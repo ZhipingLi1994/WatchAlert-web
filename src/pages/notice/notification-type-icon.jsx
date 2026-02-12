@@ -30,6 +30,10 @@ const NOTIFICATION_TYPES = {
     Slack: {
         icon: SlackIcon,
         label: "Slack"
+    },
+    HTTP: {//添加HTTP
+        icon: EmailIcon, // 复用 EmailIcon
+        label: "HTTP"
     }
 }
 
