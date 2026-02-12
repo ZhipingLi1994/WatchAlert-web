@@ -1,4 +1,4 @@
-import {Modal, Form, Input, Button, Card, Tooltip, Checkbox, Drawer} from 'antd'
+import {Modal, Form, Input, Button, Card, Tooltip, Checkbox, Drawer, Radio, Space, Select} from 'antd'
 import VSCodeEditor from "../../../utils/VSCodeEditor";
 import React, { useEffect, useState } from 'react'
 import { createNoticeTmpl, updateNoticeTmpl } from '../../../api/noticeTmpl'
@@ -7,7 +7,7 @@ import EmailImg from "../img/Email.svg";
 import DingDingImg from "../img/dingding.svg";
 import WeChatImg from "../img/qywechat.svg"
 import SlackImg from "../img/slack.svg"
-import {QuestionCircleOutlined} from "@ant-design/icons";
+import {QuestionCircleOutlined, PlusOutlined, MinusCircleOutlined} from "@ant-design/icons";
 
 const MyFormItemContext = React.createContext([])
 
@@ -69,6 +69,8 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                 t = 3
             } else if (selectedRow.noticeType === "Slack"){
                 t = 4
+            }else if (selectedRow.noticeType === "HTTP"){ // 增加HTTP
+                t = 5
             }
 
             setIsChecked(selectedRow.enableFeiShuJsonCard)
@@ -78,10 +80,22 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         }
     }, [selectedRow, form])
 
-    const handleCreate = async (values) => {
+const handleCreate = async (values) => {
         try {
+            let finalValues = { ...values };
+            // 如果是 HTTP 类型，将分散的字段打包成 JSON 字符串存入 template
+            if (notifyType === 'HTTP') {
+                const httpPayload = {
+                    headers: values.httpHeaders,
+                    method: values.httpMethod,
+                    bodyType: values.httpBodyType,
+                    params: values.httpParams,
+                    body: values.httpBodyContent
+                };
+                finalValues.template = JSON.stringify(httpPayload);
+            }
             const params = {
-                ...values,
+                ...finalValues,
                 noticeType: notifyType,
                 enableFeiShuJsonCard: isChecked,
             }
@@ -94,8 +108,20 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
 
     const handleUpdate = async (values) => {
         try {
+            let finalValues = { ...values };
+            // 同上，更新时也打包
+            if (notifyType === 'HTTP') {
+                const httpPayload = {
+                    headers: values.httpHeaders,
+                    method: values.httpMethod,
+                    bodyType: values.httpBodyType,
+                    params: values.httpParams,
+                    body: values.httpBodyContent
+                };
+                finalValues.template = JSON.stringify(httpPayload);
+            }
             const newValue = {
-                ...values,
+                ...finalValues,
                 id: selectedRow.id,
                 noticeType: notifyType,
                 enableFeiShuJsonCard: isChecked,
@@ -141,6 +167,10 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         {
             imgSrc: SlackImg,
             text: 'Slack'
+        },
+        {
+            imgSrc: EmailImg, // 使用邮件图标
+            text: 'HTTP'
         }
     ];
 
@@ -161,6 +191,8 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
            t = "WeChat"
         } else if (index === 4){
            t = "Slack"
+        } else if (index === 5){ // 新增HTTP
+           t = "HTTP"
         }
 
         setNotifyType(t)
@@ -227,9 +259,9 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                             {cards.map((card, index) => (
                                 <Card
                                     key={index}
-                                    style={{
-                                        height: 100,
-                                        width: 120,
+                                    style={{//调整图标大小
+                                        height: 75,
+                                        width: 90,
                                         position: 'relative',
                                         cursor: type === 'update' ? 'not-allowed' : 'pointer',
                                         border: selectedNotifyCard === index ? '2px solid #1890ff' : '1px solid #d9d9d9',
@@ -276,7 +308,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                     </div>
                 )}
 
-                {(!isChecked || notifyType !== "FeiShu") && (
+                {(!isChecked || (notifyType !== "FeiShu" && notifyType !== "HTTP")) && (
                     <div>
                         <MyFormItem
                             name="template"
@@ -311,6 +343,121 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                             ]}>
                             <VSCodeEditor height={"350px"}/>
                         </MyFormItem>
+                    </div>
+                )}
+                {/* 新增 HTTP 模板配置区域 */}
+                {notifyType === "HTTP" && (
+                    <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 20 }}>
+                        {/* 第一行：Header */}
+                        <div style={{ marginBottom: 10, fontWeight: 'bold' }}>Headers</div>
+                        <Form.List name="httpHeaders">
+                            {(fields, { add, remove }) => (
+                                <>
+                                    {fields.map(({ key, name, ...restField }) => (
+                                        <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'key']}
+                                                rules={[{ required: true, message: 'Key必填' }]}
+                                            >
+                                                <Input placeholder="Header Key" />
+                                            </Form.Item>
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'value']}
+                                                rules={[{ required: true, message: 'Value必填' }]}
+                                            >
+                                                <Input placeholder="Header Value" />
+                                            </Form.Item>
+                                            <MinusCircleOutlined onClick={() => remove(name)} />
+                                        </Space>
+                                    ))}
+                                    <Form.Item>
+                                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                            添加 Header
+                                        </Button>
+                                    </Form.Item>
+                                </>
+                            )}
+                        </Form.List>
+
+                        {/* 第二行：POST/GET 选项 */}
+                        <MyFormItem name="httpMethod" label="请求方法" initialValue="GET">
+                            <Radio.Group>
+                                <Radio value="GET">GET</Radio>
+                                <Radio value="POST">POST</Radio>
+                            </Radio.Group>
+                        </MyFormItem>
+
+                        {/* 第三行：根据 Method 显示 */}
+                        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.httpMethod !== curr.httpMethod || prev.httpBodyType !== curr.httpBodyType}>
+                            {({ getFieldValue }) => {
+                                const method = getFieldValue('httpMethod') || 'GET';
+                                const bodyType = getFieldValue('httpBodyType') || 'form';
+
+                                return (
+                                    <>
+                                        {method === 'POST' && (
+                                            <MyFormItem name="httpBodyType" label="Body 类型" initialValue="form">
+                                                <Radio.Group>
+                                                    <Radio value="form">Form Data</Radio>
+                                                    <Radio value="json">JSON</Radio>
+                                                    <Radio value="xml">XML</Radio>
+                                                </Radio.Group>
+                                            </MyFormItem>
+                                        )}
+
+                                        {/* GET 请求 或 POST+Form 显示键值对输入 */}
+                                        {(method === 'GET' || (method === 'POST' && bodyType === 'form')) && (
+                                            <>
+                                                <div style={{ marginBottom: 10, fontWeight: 'bold' }}>Params</div>
+                                                <Form.List name="httpParams">
+                                                    {(fields, { add, remove }) => (
+                                                        <>
+                                                            {fields.map(({ key, name, ...restField }) => (
+                                                                <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                                    <Form.Item
+                                                                        {...restField}
+                                                                        name={[name, 'key']}
+                                                                        rules={[{ required: true, message: 'Key必填' }]}
+                                                                    >
+                                                                        <Input placeholder="Param Key" />
+                                                                    </Form.Item>
+                                                                    <Form.Item
+                                                                        {...restField}
+                                                                        name={[name, 'value']}
+                                                                        rules={[{ required: true, message: 'Value必填' }]}
+                                                                    >
+                                                                        <Input placeholder="Param Value" />
+                                                                    </Form.Item>
+                                                                    <MinusCircleOutlined onClick={() => remove(name)} />
+                                                                </Space>
+                                                            ))}
+                                                            <Form.Item>
+                                                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                                    添加参数
+                                                                </Button>
+                                                            </Form.Item>
+                                                        </>
+                                                    )}
+                                                </Form.List>
+                                            </>
+                                        )}
+
+                                        {/* POST + JSON/XML 显示代码编辑器 */}
+                                        {method === 'POST' && (bodyType === 'json' || bodyType === 'xml') && (
+                                            <MyFormItem
+                                                name="httpBodyContent"
+                                                label="Body 内容"
+                                                rules={[{ required: true, message: 'Body内容必填' }]}
+                                            >
+                                                <VSCodeEditor height={"300px"} language={bodyType} />
+                                            </MyFormItem>
+                                        )}
+                                    </>
+                                )
+                            }}
+                        </Form.Item>
                     </div>
                 )}
             </Form>
