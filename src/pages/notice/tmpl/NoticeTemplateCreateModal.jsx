@@ -260,8 +260,8 @@ const handleCreate = async (values) => {
                                 <Card
                                     key={index}
                                     style={{//调整图标大小
-                                        height: 75,
-                                        width: 90,
+                                        height: 100,
+                                        width: 100,
                                         position: 'relative',
                                         cursor: type === 'update' ? 'not-allowed' : 'pointer',
                                         border: selectedNotifyCard === index ? '2px solid #1890ff' : '1px solid #d9d9d9',
